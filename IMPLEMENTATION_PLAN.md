@@ -77,7 +77,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Use `tqdm` library for progress bar
   - Track files processed vs total files
   - Display current file being processed in verbose mode
-- [ ] Generate summary report:
+- [x] Generate summary report:
   - Count total files processed
   - Count files organized by year
   - List any errors or skipped files

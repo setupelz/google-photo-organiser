@@ -8,7 +8,9 @@ import argparse
 import sys
 import zipfile
 from pathlib import Path
-from typing import List
+from typing import List, Dict
+from collections import defaultdict
+from datetime import datetime
 
 from tqdm import tqdm
 
@@ -45,7 +47,7 @@ def process_single_zip(
     zip_path: Path,
     output_dir: Path,
     verbose: bool
-) -> tuple[int, int, List[str]]:
+) -> tuple[int, int, List[str], Dict[int, Dict[str, int]]]:
     """Process a single zip file.
 
     Args:
@@ -54,7 +56,8 @@ def process_single_zip(
         verbose: Enable verbose logging
 
     Returns:
-        Tuple of (files_processed, files_organized, errors)
+        Tuple of (files_processed, files_organized, errors, files_by_year)
+        files_by_year is a dict of {year: {'photos': count, 'videos': count}}
     """
     if verbose:
         print(f"\nExtracting {zip_path.name}...")
@@ -62,6 +65,7 @@ def process_single_zip(
     errors = []
     files_processed = 0
     files_organized = 0
+    files_by_year: Dict[int, Dict[str, int]] = defaultdict(lambda: {'photos': 0, 'videos': 0})
 
     try:
         # Extract zip and get media files
@@ -98,8 +102,15 @@ def process_single_zip(
 
                 if result is not None:
                     files_organized += 1
+                    file_type, dest_path = result
+
+                    # Track by year and type
+                    if file_type == 'photo':
+                        files_by_year[year]['photos'] += 1
+                    elif file_type == 'video':
+                        files_by_year[year]['videos'] += 1
+
                     if verbose:
-                        file_type, dest_path = result
                         print(f"  → {file_type}: {dest_path.relative_to(output_dir)}")
 
             except Exception as e:
@@ -119,7 +130,81 @@ def process_single_zip(
         errors.append(error_msg)
         print(error_msg, file=sys.stderr)
 
-    return files_processed, files_organized, errors
+    return files_processed, files_organized, errors, files_by_year
+
+
+def generate_summary_report(
+    output_dir: Path,
+    total_processed: int,
+    total_organized: int,
+    all_errors: List[str],
+    files_by_year: Dict[int, Dict[str, int]]
+) -> None:
+    """Generate and save processing summary report.
+
+    Args:
+        output_dir: Output directory where report will be saved
+        total_processed: Total files processed
+        total_organized: Total files organized
+        all_errors: List of error messages
+        files_by_year: Dictionary of files organized by year and type
+    """
+    report_path = output_dir / "processing_report.txt"
+
+    with open(report_path, 'w', encoding='utf-8') as f:
+        # Header
+        f.write("=" * 60 + "\n")
+        f.write("Google Photos Organiser - Processing Report\n")
+        f.write("=" * 60 + "\n")
+        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("\n")
+
+        # Summary statistics
+        f.write("Summary\n")
+        f.write("-" * 60 + "\n")
+        f.write(f"Total files processed:  {total_processed:,}\n")
+        f.write(f"Files organized:        {total_organized:,}\n")
+        f.write(f"Files skipped:          {total_processed - total_organized:,}\n")
+        f.write(f"Errors encountered:     {len(all_errors):,}\n")
+        f.write("\n")
+
+        # Files by year
+        if files_by_year:
+            f.write("Files Organized by Year\n")
+            f.write("-" * 60 + "\n")
+
+            # Sort years for consistent output
+            sorted_years = sorted(files_by_year.keys())
+
+            # Calculate totals
+            total_photos = sum(data['photos'] for data in files_by_year.values())
+            total_videos = sum(data['videos'] for data in files_by_year.values())
+
+            # Year breakdown
+            f.write(f"{'Year':<10} {'Photos':<15} {'Videos':<15} {'Total':<10}\n")
+            f.write("-" * 60 + "\n")
+
+            for year in sorted_years:
+                photos = files_by_year[year]['photos']
+                videos = files_by_year[year]['videos']
+                total = photos + videos
+                f.write(f"{year:<10} {photos:<15,} {videos:<15,} {total:<10,}\n")
+
+            f.write("-" * 60 + "\n")
+            f.write(f"{'TOTAL':<10} {total_photos:<15,} {total_videos:<15,} {total_organized:<10,}\n")
+            f.write("\n")
+
+        # Error details
+        if all_errors:
+            f.write("Errors\n")
+            f.write("-" * 60 + "\n")
+            for i, error in enumerate(all_errors, 1):
+                f.write(f"{i}. {error}\n")
+            f.write("\n")
+
+        # Footer
+        f.write("=" * 60 + "\n")
+        f.write(f"Report saved to: {report_path.absolute()}\n")
 
 
 def main() -> int:
@@ -194,9 +279,10 @@ Examples:
     total_processed = 0
     total_organized = 0
     all_errors = []
+    all_files_by_year: Dict[int, Dict[str, int]] = defaultdict(lambda: {'photos': 0, 'videos': 0})
 
     for zip_file in valid_zips:
-        processed, organized, errors = process_single_zip(
+        processed, organized, errors, files_by_year = process_single_zip(
             zip_file,
             args.output,
             args.verbose
@@ -205,13 +291,37 @@ Examples:
         total_organized += organized
         all_errors.extend(errors)
 
+        # Merge files_by_year into all_files_by_year
+        for year, counts in files_by_year.items():
+            all_files_by_year[year]['photos'] += counts['photos']
+            all_files_by_year[year]['videos'] += counts['videos']
+
+    # Generate summary report
+    generate_summary_report(
+        args.output,
+        total_processed,
+        total_organized,
+        all_errors,
+        all_files_by_year
+    )
+
     # Print summary
     print(f"\n{'='*60}")
     print("Processing Complete")
     print(f"{'='*60}")
-    print(f"Total files processed: {total_processed}")
-    print(f"Files organized: {total_organized}")
-    print(f"Files skipped: {total_processed - total_organized}")
+    print(f"Total files processed: {total_processed:,}")
+    print(f"Files organized: {total_organized:,}")
+    print(f"Files skipped: {total_processed - total_organized:,}")
+
+    # Print year breakdown if available
+    if all_files_by_year:
+        print(f"\nFiles by year:")
+        sorted_years = sorted(all_files_by_year.keys())
+        for year in sorted_years:
+            photos = all_files_by_year[year]['photos']
+            videos = all_files_by_year[year]['videos']
+            total = photos + videos
+            print(f"  {year}: {total:,} files ({photos:,} photos, {videos:,} videos)")
 
     if all_errors:
         print(f"\nErrors encountered: {len(all_errors)}")
@@ -221,6 +331,9 @@ Examples:
             print("\nError details:")
             for error in all_errors:
                 print(f"  - {error}")
+
+    # Print report location
+    print(f"\nDetailed report saved to: {args.output / 'processing_report.txt'}")
 
     return 0 if not all_errors else 1
 
