@@ -155,7 +155,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
 
 ### Tasks
 
-- [ ] Create `build.spec` for PyInstaller:
+- [x] Create `build.spec` for PyInstaller:
   - Configure `--onefile` mode for single executable
   - Set entry point to `src/photo_organiser/main.py`
   - Bundle all dependencies (Pillow, etc.)
