@@ -36,7 +36,7 @@ def get_executable_dir() -> Path:
 
 from photo_organiser.extractor import process_zip_file, cleanup_temp_dir
 from photo_organiser.metadata import get_best_date, extract_year
-from photo_organiser.organizer import organize_file
+from photo_organiser.organizer import organize_file, classify_file, UNKNOWN_YEAR
 from photo_organiser.config import LARGE_FILE_WARNING_BYTES
 
 
@@ -110,7 +110,7 @@ def process_single_zip(
     zip_path: Path,
     output_dir: Path,
     logger: logging.Logger
-) -> tuple[int, int, List[str], Dict[int, Dict[str, int]]]:
+) -> tuple[int, int, int, int, List[str], Dict[str, Dict[str, int]]]:
     """Process a single zip file.
 
     Args:
@@ -119,15 +119,17 @@ def process_single_zip(
         logger: Logger instance for logging
 
     Returns:
-        Tuple of (files_processed, files_organized, errors, files_by_year)
-        files_by_year is a dict of {year: {'photos': count, 'videos': count}}
+        Tuple of (files_processed, files_organized, metadata_skipped, unrecognized_skipped, errors, files_by_year)
+        files_by_year is a dict of {year_str: {'photos': count, 'videos': count}}
     """
     logger.info(f"Extracting {zip_path.name}...")
 
     errors = []
     files_processed = 0
     files_organized = 0
-    files_by_year: Dict[int, Dict[str, int]] = defaultdict(lambda: {'photos': 0, 'videos': 0})
+    metadata_skipped = 0
+    unrecognized_skipped = 0
+    files_by_year: Dict[str, Dict[str, int]] = defaultdict(lambda: {'photos': 0, 'videos': 0})
 
     try:
         # Extract zip and get media files
@@ -138,7 +140,7 @@ def process_single_zip(
         # Check for empty zip files
         if len(media_files) == 0:
             logger.warning(f"No files found in {zip_path.name}")
-            return 0, 0, [], {}
+            return 0, 0, 0, 0, [], {}
 
         # Create progress bar (only show if not in DEBUG mode)
         show_progress = logger.level > logging.DEBUG
@@ -154,6 +156,17 @@ def process_single_zip(
             files_processed += 1
 
             try:
+                # Check file type first to track skipped files
+                file_type = classify_file(media_file)
+                if file_type == 'metadata':
+                    metadata_skipped += 1
+                    logger.debug(f"Skipping metadata file: {media_file.name}")
+                    continue
+                elif file_type is None:
+                    unrecognized_skipped += 1
+                    logger.debug(f"Skipping unrecognized file: {media_file.name}")
+                    continue
+
                 # Check file size and warn for very large files
                 file_size = media_file.stat().st_size
                 if file_size > LARGE_FILE_WARNING_BYTES:
@@ -165,9 +178,14 @@ def process_single_zip(
 
                 # Get date and year
                 date = get_best_date(media_file)
-                year = extract_year(date)
+                if date is not None:
+                    year = extract_year(date)
+                    year_key = str(year)
+                else:
+                    year = UNKNOWN_YEAR
+                    year_key = UNKNOWN_YEAR
 
-                logger.debug(f"Processing: {media_file.name} (year: {year})")
+                logger.debug(f"Processing: {media_file.name} (year: {year_key})")
 
                 if show_progress:
                     # Update progress bar description with current file
@@ -182,13 +200,11 @@ def process_single_zip(
 
                     # Track by year and type
                     if file_type == 'photo':
-                        files_by_year[year]['photos'] += 1
+                        files_by_year[year_key]['photos'] += 1
                     elif file_type == 'video':
-                        files_by_year[year]['videos'] += 1
+                        files_by_year[year_key]['videos'] += 1
 
                     logger.debug(f"Organized {file_type}: {dest_path.relative_to(output_dir)}")
-                else:
-                    logger.debug(f"Skipped {media_file.name} (metadata or unrecognized)")
 
             except PermissionError as e:
                 error_msg = f"Permission denied: {media_file.name} - {str(e)}"
@@ -246,15 +262,17 @@ def process_single_zip(
         errors.append(error_msg)
         logger.error(error_msg, exc_info=True)
 
-    return files_processed, files_organized, errors, files_by_year
+    return files_processed, files_organized, metadata_skipped, unrecognized_skipped, errors, files_by_year
 
 
 def generate_summary_report(
     output_dir: Path,
     total_processed: int,
     total_organized: int,
+    metadata_skipped: int,
+    unrecognized_skipped: int,
     all_errors: List[str],
-    files_by_year: Dict[int, Dict[str, int]]
+    files_by_year: Dict[str, Dict[str, int]]
 ) -> None:
     """Generate and save processing summary report.
 
@@ -262,6 +280,8 @@ def generate_summary_report(
         output_dir: Output directory where report will be saved
         total_processed: Total files processed
         total_organized: Total files organized
+        metadata_skipped: Number of metadata (JSON) files skipped
+        unrecognized_skipped: Number of unrecognized file types skipped
         all_errors: List of error messages
         files_by_year: Dictionary of files organized by year and type
     """
@@ -278,9 +298,10 @@ def generate_summary_report(
         # Summary statistics
         f.write("Summary\n")
         f.write("-" * 60 + "\n")
-        f.write(f"Total files processed:  {total_processed:,}\n")
-        f.write(f"Files organized:        {total_organized:,}\n")
-        f.write(f"Files skipped:          {total_processed - total_organized:,}\n")
+        f.write(f"Total files found:      {total_processed:,}\n")
+        f.write(f"  Photos/videos:        {total_organized:,}\n")
+        f.write(f"  Metadata files:       {metadata_skipped:,} (skipped)\n")
+        f.write(f"  Unrecognized:         {unrecognized_skipped:,} (skipped)\n")
         f.write(f"Errors encountered:     {len(all_errors):,}\n")
         f.write("\n")
 
@@ -289,8 +310,12 @@ def generate_summary_report(
             f.write("Files Organized by Year\n")
             f.write("-" * 60 + "\n")
 
-            # Sort years for consistent output
-            sorted_years = sorted(files_by_year.keys())
+            # Sort years for consistent output (UnknownYear at the end)
+            def year_sort_key(y):
+                if y == UNKNOWN_YEAR:
+                    return (1, y)  # Put UnknownYear at the end
+                return (0, y)
+            sorted_years = sorted(files_by_year.keys(), key=year_sort_key)
 
             # Calculate totals
             total_photos = sum(data['photos'] for data in files_by_year.values())
@@ -400,17 +425,21 @@ Examples:
     # Process all zip files
     total_processed = 0
     total_organized = 0
+    total_metadata_skipped = 0
+    total_unrecognized_skipped = 0
     all_errors = []
-    all_files_by_year: Dict[int, Dict[str, int]] = defaultdict(lambda: {'photos': 0, 'videos': 0})
+    all_files_by_year: Dict[str, Dict[str, int]] = defaultdict(lambda: {'photos': 0, 'videos': 0})
 
     for zip_file in valid_zips:
-        processed, organized, errors, files_by_year = process_single_zip(
+        processed, organized, metadata_skipped, unrecognized_skipped, errors, files_by_year = process_single_zip(
             zip_file,
             args.output,
             logger
         )
         total_processed += processed
         total_organized += organized
+        total_metadata_skipped += metadata_skipped
+        total_unrecognized_skipped += unrecognized_skipped
         all_errors.extend(errors)
 
         # Merge files_by_year into all_files_by_year
@@ -424,6 +453,8 @@ Examples:
         args.output,
         total_processed,
         total_organized,
+        total_metadata_skipped,
+        total_unrecognized_skipped,
         all_errors,
         all_files_by_year
     )
@@ -432,14 +463,20 @@ Examples:
     print(f"\n{'='*60}")
     print("Processing Complete")
     print(f"{'='*60}")
-    print(f"Total files processed: {total_processed:,}")
-    print(f"Files organized: {total_organized:,}")
-    print(f"Files skipped: {total_processed - total_organized:,}")
+    print(f"Total files found:      {total_processed:,}")
+    print(f"  Photos/videos:        {total_organized:,}")
+    print(f"  Metadata files:       {total_metadata_skipped:,} (skipped)")
+    print(f"  Unrecognized:         {total_unrecognized_skipped:,} (skipped)")
 
     # Print year breakdown if available
     if all_files_by_year:
         print(f"\nFiles by year:")
-        sorted_years = sorted(all_files_by_year.keys())
+        # Sort years (UnknownYear at the end)
+        def year_sort_key(y):
+            if y == UNKNOWN_YEAR:
+                return (1, y)
+            return (0, y)
+        sorted_years = sorted(all_files_by_year.keys(), key=year_sort_key)
         for year in sorted_years:
             photos = all_files_by_year[year]['photos']
             videos = all_files_by_year[year]['videos']

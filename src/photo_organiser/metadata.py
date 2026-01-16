@@ -110,19 +110,18 @@ def get_file_modification_date(file_path: Path) -> datetime:
     return datetime.fromtimestamp(mtime)
 
 
-def get_best_date(media_path: Path) -> datetime:
+def get_best_date(media_path: Path) -> Optional[datetime]:
     """Determine the best date for a media file.
 
     Priority order:
     1. Companion JSON file (Google Takeout metadata)
     2. EXIF data from image
-    3. File modification time (fallback)
 
     Args:
         media_path: Path to the media file
 
     Returns:
-        datetime object representing the file's date
+        datetime object if a reliable date was found, None otherwise
     """
     # Try companion JSON first (e.g., photo.jpg.json)
     json_path = Path(str(media_path) + '.json')
@@ -136,8 +135,8 @@ def get_best_date(media_path: Path) -> datetime:
         if date:
             return date
 
-    # Fallback to file modification time
-    return get_file_modification_date(media_path)
+    # No reliable date found
+    return None
 
 
 def extract_year(date: datetime) -> int:

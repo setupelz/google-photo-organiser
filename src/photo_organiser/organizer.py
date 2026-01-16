@@ -5,9 +5,12 @@ resolving filename conflicts, and copying files to the organized structure.
 """
 
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 import shutil
 import logging
+
+# Constant for unknown year folder name
+UNKNOWN_YEAR = 'UnknownYear'
 
 from .config import (
     PHOTO_EXTENSIONS,
@@ -44,7 +47,7 @@ def classify_file(file_path: Path) -> Optional[str]:
 
 def generate_output_path(
     file_path: Path,
-    year: int,
+    year: Union[int, str],
     output_dir: Path,
     file_type: str
 ) -> Path:
@@ -52,7 +55,7 @@ def generate_output_path(
 
     Args:
         file_path: Original file path
-        year: Year to organize under
+        year: Year to organize under (int) or 'UnknownYear' string
         output_dir: Base output directory
         file_type: 'photo' or 'video'
 
@@ -154,7 +157,7 @@ def copy_file(source: Path, destination: Path) -> None:
 
 def organize_file(
     file_path: Path,
-    year: int,
+    year: Union[int, str],
     output_dir: Path
 ) -> Optional[Tuple[str, Path]]:
     """Organize a single file into the output directory structure.
@@ -168,7 +171,7 @@ def organize_file(
 
     Args:
         file_path: Path to file to organize
-        year: Year to organize under
+        year: Year to organize under (int) or UNKNOWN_YEAR string
         output_dir: Base output directory
 
     Returns:
@@ -180,7 +183,7 @@ def organize_file(
         OSError: If file operations fail
     """
     # Validate year
-    if not (1900 <= year <= 2100):
+    if isinstance(year, int) and not (1900 <= year <= 2100):
         raise ValueError(f"Invalid year: {year}")
 
     # Classify file
