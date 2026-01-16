@@ -35,7 +35,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
 
 ### Tasks
 
-- [ ] Create `src/photo_organiser/extractor.py`:
+- [x] Create `src/photo_organiser/extractor.py`:
   - Function to extract zip files to temporary directory
   - Handle Google Takeout nested structure (`Takeout/Google Photos/`)
   - Clean up temporary files after processing
