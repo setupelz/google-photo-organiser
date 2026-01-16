@@ -106,7 +106,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Test path generation for different years and media types
   - Test duplicate handling (append counter logic)
   - Test JSON file skipping
-- [ ] Create `tests/test_extractor.py`:
+- [x] Create `tests/test_extractor.py`:
   - Test zip extraction to temporary directory
   - Test handling of Takeout nested structure
   - Test cleanup of temporary files
