@@ -4,6 +4,7 @@
 #
 # Usage:
 #   ./loop.sh plan          # Interactive planning session (single run)
+#   ./loop.sh plan 5        # Autonomous planning (5 iterations, non-interactive)
 #   ./loop.sh              # Build mode, unlimited iterations
 #   ./loop.sh 20           # Build mode, max 20 iterations
 #
@@ -24,10 +25,18 @@ set -e
 MODE="build"
 PROMPT_FILE="PROMPT_build.md"
 MAX_ITERATIONS=0
+INTERACTIVE=false
 
 if [ "$1" = "plan" ]; then
     MODE="plan"
     PROMPT_FILE="PROMPT_plan.md"
+    # Check if iterations specified (non-interactive mode)
+    if [[ "$2" =~ ^[0-9]+$ ]]; then
+        MAX_ITERATIONS=$2
+        INTERACTIVE=false
+    else
+        INTERACTIVE=true
+    fi
 elif [[ "$1" =~ ^[0-9]+$ ]]; then
     MAX_ITERATIONS=$1
 fi
@@ -62,36 +71,71 @@ if [ ! -f "AGENTS.md" ] && [ ! -f "CLAUDE.md" ]; then
 fi
 
 #######################################
-# PLAN MODE: Interactive single session
+# PLAN MODE: Interactive or autonomous
 #######################################
 if [ "$MODE" = "plan" ]; then
-    echo "📋 Starting interactive planning session..."
-    echo "   Claude will ask questions to refine the plan."
-    echo "   Type responses when prompted."
-    echo ""
+    if [ "$INTERACTIVE" = true ]; then
+        # Interactive planning - human in the loop
+        echo "📋 Starting interactive planning session..."
+        echo "   Claude will ask questions to refine the plan."
+        echo "   Type responses when prompted."
+        echo ""
 
-    # Run Claude interactively (NOT piped, NOT looped)
-    # Uses Opus for better reasoning during planning
-    claude --model opus --dangerously-skip-permissions --verbose "$(cat "$PROMPT_FILE")"
+        # Run Claude interactively (NOT piped, NOT looped)
+        # Uses Opus for better reasoning during planning
+        claude --model opus --dangerously-skip-permissions --verbose "$(cat "$PROMPT_FILE")"
 
-    echo ""
-    echo "═══════════════════════════════════════"
-    echo "📋 Planning session complete"
-    echo "   Review: IMPLEMENTATION_PLAN.md"
-    echo "   Next:   ./loop.sh [iterations]"
-    echo "═══════════════════════════════════════"
-    exit 0
+        echo ""
+        echo "═══════════════════════════════════════"
+        echo "📋 Planning session complete"
+        echo "   Review: IMPLEMENTATION_PLAN.md"
+        echo "   Next:   ./loop.sh [iterations]"
+        echo "═══════════════════════════════════════"
+        exit 0
+    else
+        # Non-interactive planning - autonomous mode
+        echo "📋 Starting autonomous planning..."
+        echo "   Claude will create/update the implementation plan."
+        echo "   Max iterations: $MAX_ITERATIONS"
+        echo ""
+        # Fall through to build loop logic below, but with plan prompt
+    fi
 fi
 
 #######################################
-# BUILD MODE: Autonomous loop
+# AUTONOMOUS LOOP (build or non-interactive plan)
 #######################################
-echo "🔨 Starting autonomous build loop..."
+if [ "$MODE" = "plan" ]; then
+    echo "📋 Running autonomous planning loop..."
+else
+    echo "🔨 Starting autonomous build loop..."
+fi
 echo "   Press Ctrl+C to stop gracefully"
 echo ""
 
 ITERATION=0
 PHASE_COMPLETE=false
+
+# Prepare prompt content - inject autonomous mode header for non-interactive planning
+if [ "$MODE" = "plan" ] && [ "$INTERACTIVE" = false ]; then
+    PROMPT_CONTENT="AUTONOMOUS MODE - DO NOT ASK QUESTIONS
+
+You are running in autonomous/headless mode via Telegram. There is no human to answer questions.
+
+CRITICAL INSTRUCTIONS:
+- Do NOT use AskUserQuestion - it will fail
+- Do NOT ask for confirmation or clarification
+- Auto-select all specs marked '🚧 In Progress' or '📋 Planned'
+- Make reasonable assumptions for any ambiguity
+- Document assumptions in the plan
+- Just read specs → generate plan → write IMPLEMENTATION_PLAN.md → output ###PHASE_COMPLETE###
+
+---
+
+$(cat "$PROMPT_FILE")"
+else
+    PROMPT_CONTENT="$(cat "$PROMPT_FILE")"
+fi
 
 while true; do
     # Check iteration limit
@@ -121,7 +165,7 @@ while true; do
     # --dangerously-skip-permissions: autonomous operation
     #   ⚠️  USE IN SANDBOX ONLY! When compromised, minimize blast radius.
     # --model sonnet: speed and cost efficiency for implementation
-    cat "$PROMPT_FILE" | claude -p \
+    echo "$PROMPT_CONTENT" | claude -p \
         --dangerously-skip-permissions \
         --model sonnet \
         --verbose 2>&1 | tee "$OUTPUT_FILE"
