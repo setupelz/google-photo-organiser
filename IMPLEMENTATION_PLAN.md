@@ -39,7 +39,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Function to extract zip files to temporary directory
   - Handle Google Takeout nested structure (`Takeout/Google Photos/`)
   - Clean up temporary files after processing
-- [ ] Create `src/photo_organiser/metadata.py`:
+- [x] Create `src/photo_organiser/metadata.py`:
   - Function to parse companion JSON files (extract `photoTakenTime` field)
   - Function to read EXIF data from images using Pillow (`DateTimeOriginal` tag)
   - Function to extract file modification date (fallback)
