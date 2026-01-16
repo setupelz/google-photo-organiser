@@ -15,10 +15,10 @@ from datetime import datetime
 
 from tqdm import tqdm
 
-from .extractor import process_zip_file, cleanup_temp_dir
-from .metadata import get_best_date, extract_year
-from .organizer import organize_file
-from .config import LARGE_FILE_WARNING_BYTES
+from photo_organiser.extractor import process_zip_file, cleanup_temp_dir
+from photo_organiser.metadata import get_best_date, extract_year
+from photo_organiser.organizer import organize_file
+from photo_organiser.config import LARGE_FILE_WARNING_BYTES
 
 
 def setup_logging(output_dir: Path, verbose: bool) -> logging.Logger:

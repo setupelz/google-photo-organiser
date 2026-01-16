@@ -20,7 +20,7 @@ entry_point = 'src/photo_organiser/main.py'
 # Analysis: Scan for dependencies and scripts
 a = Analysis(
     [entry_point],
-    pathex=[],
+    pathex=['src'],
     binaries=[],
     datas=[],
     hiddenimports=[
