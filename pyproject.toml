@@ -10,6 +10,11 @@ dependencies = [
     "tqdm>=4.66.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

@@ -95,7 +95,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
 
 ### Tasks
 
-- [ ] Create `tests/test_metadata.py`:
+- [x] Create `tests/test_metadata.py`:
   - Test JSON parsing with valid data
   - Test JSON parsing with missing/malformed data
   - Test EXIF reading from sample images
