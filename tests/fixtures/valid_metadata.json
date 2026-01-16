@@ -1,0 +1,33 @@
+{
+  "title": "IMG_1234.jpg",
+  "description": "",
+  "imageViews": "42",
+  "creationTime": {
+    "timestamp": "1577836800",
+    "formatted": "Jan 1, 2020, 12:00:00 AM UTC"
+  },
+  "photoTakenTime": {
+    "timestamp": "1577836800",
+    "formatted": "Jan 1, 2020, 12:00:00 AM UTC"
+  },
+  "geoData": {
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "altitude": 0.0,
+    "latitudeSpan": 0.0,
+    "longitudeSpan": 0.0
+  },
+  "geoDataExif": {
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "altitude": 0.0,
+    "latitudeSpan": 0.0,
+    "longitudeSpan": 0.0
+  },
+  "url": "",
+  "googlePhotosOrigin": {
+    "mobileUpload": {
+      "deviceType": "IOS_PHONE"
+    }
+  }
+}

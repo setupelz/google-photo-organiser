@@ -110,7 +110,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Test zip extraction to temporary directory
   - Test handling of Takeout nested structure
   - Test cleanup of temporary files
-- [ ] Create test fixtures in `tests/fixtures/`:
+- [x] Create test fixtures in `tests/fixtures/`:
   - Sample JPEG images with EXIF data
   - Sample JSON metadata files (Google format)
   - Sample zip mimicking Google Takeout structure
