@@ -101,7 +101,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Test EXIF reading from sample images
   - Test date fallback logic (JSON > EXIF > mtime)
   - Test year extraction from various date formats
-- [ ] Create `tests/test_organizer.py`:
+- [x] Create `tests/test_organizer.py`:
   - Test file classification (photo vs video) for all extensions
   - Test path generation for different years and media types
   - Test duplicate handling (append counter logic)
