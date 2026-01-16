@@ -5,6 +5,7 @@ and organizing media files by year and type.
 """
 
 import argparse
+import logging
 import sys
 import zipfile
 from pathlib import Path
@@ -17,6 +18,48 @@ from tqdm import tqdm
 from .extractor import process_zip_file, cleanup_temp_dir
 from .metadata import get_best_date, extract_year
 from .organizer import organize_file
+
+
+def setup_logging(output_dir: Path, verbose: bool) -> logging.Logger:
+    """Configure logging for the application.
+
+    Sets up both file and console logging with appropriate levels.
+    - File log: Always at DEBUG level, saved to output/photo_organiser.log
+    - Console log: INFO level (or DEBUG if verbose=True)
+
+    Args:
+        output_dir: Directory where log file will be saved
+        verbose: If True, enable DEBUG level console logging
+
+    Returns:
+        Configured logger instance
+    """
+    logger = logging.getLogger('photo_organiser')
+    logger.setLevel(logging.DEBUG)
+
+    # Clear any existing handlers
+    logger.handlers.clear()
+
+    # File handler - always DEBUG level
+    log_file = output_dir / 'photo_organiser.log'
+    file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG)
+    file_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
+
+    # Console handler - INFO or DEBUG based on verbose flag
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG if verbose else logging.INFO)
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setFormatter(console_formatter)
+    logger.addHandler(console_handler)
+
+    logger.debug(f"Logging initialized. Log file: {log_file}")
+    return logger
 
 
 def validate_zip_file(zip_path: Path) -> bool:
@@ -46,21 +89,20 @@ def validate_zip_file(zip_path: Path) -> bool:
 def process_single_zip(
     zip_path: Path,
     output_dir: Path,
-    verbose: bool
+    logger: logging.Logger
 ) -> tuple[int, int, List[str], Dict[int, Dict[str, int]]]:
     """Process a single zip file.
 
     Args:
         zip_path: Path to zip file
         output_dir: Output directory for organized files
-        verbose: Enable verbose logging
+        logger: Logger instance for logging
 
     Returns:
         Tuple of (files_processed, files_organized, errors, files_by_year)
         files_by_year is a dict of {year: {'photos': count, 'videos': count}}
     """
-    if verbose:
-        print(f"\nExtracting {zip_path.name}...")
+    logger.info(f"Extracting {zip_path.name}...")
 
     errors = []
     files_processed = 0
@@ -69,17 +111,17 @@ def process_single_zip(
 
     try:
         # Extract zip and get media files
+        logger.debug(f"Starting extraction of {zip_path}")
         media_files, temp_dir = process_zip_file(zip_path)
+        logger.info(f"Found {len(media_files)} files to process")
 
-        if verbose:
-            print(f"Found {len(media_files)} files to process")
-
-        # Create progress bar
+        # Create progress bar (only show if not in DEBUG mode)
+        show_progress = logger.level > logging.DEBUG
         progress_bar = tqdm(
             media_files,
             desc=f"Processing {zip_path.name}",
             unit="file",
-            disable=verbose  # Disable if verbose mode (to avoid conflicts with detailed output)
+            disable=not show_progress
         )
 
         # Process each file
@@ -91,9 +133,9 @@ def process_single_zip(
                 date = get_best_date(media_file)
                 year = extract_year(date)
 
-                if verbose:
-                    print(f"Processing: {media_file.name} (year: {year})")
-                else:
+                logger.debug(f"Processing: {media_file.name} (year: {year})")
+
+                if show_progress:
                     # Update progress bar description with current file
                     progress_bar.set_postfix_str(f"{media_file.name[:30]}...")
 
@@ -110,25 +152,27 @@ def process_single_zip(
                     elif file_type == 'video':
                         files_by_year[year]['videos'] += 1
 
-                    if verbose:
-                        print(f"  → {file_type}: {dest_path.relative_to(output_dir)}")
+                    logger.debug(f"Organized {file_type}: {dest_path.relative_to(output_dir)}")
+                else:
+                    logger.debug(f"Skipped {media_file.name} (metadata or unrecognized)")
 
             except Exception as e:
                 error_msg = f"Error processing {media_file.name}: {str(e)}"
                 errors.append(error_msg)
-                if verbose:
-                    print(f"  ! {error_msg}", file=sys.stderr)
+                logger.error(error_msg, exc_info=True)
 
         # Close progress bar
         progress_bar.close()
 
         # Cleanup temporary directory
+        logger.debug(f"Cleaning up temporary directory: {temp_dir}")
         cleanup_temp_dir(temp_dir)
+        logger.info(f"Completed processing {zip_path.name}: {files_organized}/{files_processed} files organized")
 
     except Exception as e:
         error_msg = f"Error processing zip {zip_path.name}: {str(e)}"
         errors.append(error_msg)
-        print(error_msg, file=sys.stderr)
+        logger.error(error_msg, exc_info=True)
 
     return files_processed, files_organized, errors, files_by_year
 
@@ -252,28 +296,34 @@ Examples:
 
     args = parser.parse_args()
 
+    # Create output directory if it doesn't exist
+    args.output.mkdir(parents=True, exist_ok=True)
+
+    # Setup logging
+    logger = setup_logging(args.output, args.verbose)
+
     # Validate input files
     valid_zips = []
     for zip_file in args.zip_files:
         if validate_zip_file(zip_file):
             valid_zips.append(zip_file)
+            logger.debug(f"Validated zip file: {zip_file}")
+        else:
+            logger.warning(f"Skipping invalid zip file: {zip_file}")
 
     if not valid_zips:
-        print("Error: No valid zip files to process", file=sys.stderr)
+        logger.error("No valid zip files to process")
         return 1
 
-    # Create output directory if it doesn't exist
-    args.output.mkdir(parents=True, exist_ok=True)
-
-    print(f"Photo Organiser v0.1.0")
-    print(f"Processing {len(valid_zips)} zip file(s)...")
-    print(f"Output directory: {args.output.absolute()}")
+    logger.info("Photo Organiser v0.1.0")
+    logger.info(f"Processing {len(valid_zips)} zip file(s)...")
+    logger.info(f"Output directory: {args.output.absolute()}")
 
     if args.verbose:
-        print("\nVerbose mode enabled")
-        print(f"Input files:")
+        logger.debug("Verbose mode enabled")
+        logger.debug("Input files:")
         for zip_file in valid_zips:
-            print(f"  - {zip_file.absolute()}")
+            logger.debug(f"  - {zip_file.absolute()}")
 
     # Process all zip files
     total_processed = 0
@@ -285,7 +335,7 @@ Examples:
         processed, organized, errors, files_by_year = process_single_zip(
             zip_file,
             args.output,
-            args.verbose
+            logger
         )
         total_processed += processed
         total_organized += organized
@@ -297,6 +347,7 @@ Examples:
             all_files_by_year[year]['videos'] += counts['videos']
 
     # Generate summary report
+    logger.debug("Generating summary report...")
     generate_summary_report(
         args.output,
         total_processed,

@@ -133,7 +133,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Disk space issues (catch `OSError`)
   - Permission errors during file operations
   - Invalid file formats (unknown extensions)
-- [ ] Add logging system:
+- [x] Add logging system:
   - Use Python `logging` module
   - Log to file: `output/photo_organiser.log`
   - Log level controlled by `--verbose` flag
