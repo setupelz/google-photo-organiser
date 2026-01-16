@@ -1,0 +1,69 @@
+# Data (large files)
+data/raw/*.csv
+data/raw/*.parquet
+data/raw/*.nc
+data/raw/*.pkl
+data/raw/*.pickle
+data/raw/*.h5
+data/raw/*.hdf5
+*.zip
+*.gz
+*.tar
+*.bz2
+
+# Outputs (regenerable)
+data/output/
+data/processed/*.csv
+data/processed/*.parquet
+
+# Python Environment
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+uv.lock
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+.jupyter/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets/embargoed
+embargoed/
+pre-publication/
+credentials/
+.env
+*.key
+*.pem
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Cache directories
+cache/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pypackages__/
