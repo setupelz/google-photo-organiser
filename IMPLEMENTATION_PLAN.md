@@ -126,7 +126,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
 
 ### Tasks
 
-- [ ] Add error handling for:
+- [x] Add error handling for:
   - Corrupted or invalid zip files
   - Missing or malformed JSON metadata
   - Images without EXIF data

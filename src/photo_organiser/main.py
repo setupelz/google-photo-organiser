@@ -115,6 +115,11 @@ def process_single_zip(
         media_files, temp_dir = process_zip_file(zip_path)
         logger.info(f"Found {len(media_files)} files to process")
 
+        # Check for empty zip files
+        if len(media_files) == 0:
+            logger.warning(f"No files found in {zip_path.name}")
+            return 0, 0, [], {}
+
         # Create progress bar (only show if not in DEBUG mode)
         show_progress = logger.level > logging.DEBUG
         progress_bar = tqdm(
@@ -156,8 +161,29 @@ def process_single_zip(
                 else:
                     logger.debug(f"Skipped {media_file.name} (metadata or unrecognized)")
 
+            except PermissionError as e:
+                error_msg = f"Permission denied: {media_file.name} - {str(e)}"
+                errors.append(error_msg)
+                logger.error(error_msg)
+            except OSError as e:
+                # Check if disk space issue
+                if "No space left on device" in str(e) or "Insufficient disk space" in str(e):
+                    error_msg = f"Disk space exhausted while processing {media_file.name}"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+                    # Stop processing if out of disk space
+                    logger.error("Stopping processing due to insufficient disk space")
+                    break
+                else:
+                    error_msg = f"File system error processing {media_file.name}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+            except ValueError as e:
+                error_msg = f"Invalid data in {media_file.name}: {str(e)}"
+                errors.append(error_msg)
+                logger.warning(error_msg)
             except Exception as e:
-                error_msg = f"Error processing {media_file.name}: {str(e)}"
+                error_msg = f"Unexpected error processing {media_file.name}: {str(e)}"
                 errors.append(error_msg)
                 logger.error(error_msg, exc_info=True)
 
@@ -169,8 +195,25 @@ def process_single_zip(
         cleanup_temp_dir(temp_dir)
         logger.info(f"Completed processing {zip_path.name}: {files_organized}/{files_processed} files organized")
 
+    except zipfile.BadZipFile as e:
+        error_msg = f"Corrupted or invalid zip file {zip_path.name}: {str(e)}"
+        errors.append(error_msg)
+        logger.error(error_msg)
+    except PermissionError as e:
+        error_msg = f"Permission denied accessing {zip_path.name}: {str(e)}"
+        errors.append(error_msg)
+        logger.error(error_msg)
+    except OSError as e:
+        if "No space left on device" in str(e) or "Insufficient disk space" in str(e):
+            error_msg = f"Insufficient disk space to process {zip_path.name}"
+            errors.append(error_msg)
+            logger.error(error_msg)
+        else:
+            error_msg = f"File system error processing {zip_path.name}: {str(e)}"
+            errors.append(error_msg)
+            logger.error(error_msg)
     except Exception as e:
-        error_msg = f"Error processing zip {zip_path.name}: {str(e)}"
+        error_msg = f"Unexpected error processing zip {zip_path.name}: {str(e)}"
         errors.append(error_msg)
         logger.error(error_msg, exc_info=True)
 

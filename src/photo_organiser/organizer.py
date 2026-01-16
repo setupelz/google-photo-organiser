@@ -116,13 +116,29 @@ def copy_file(source: Path, destination: Path) -> None:
         destination: Destination file path
 
     Raises:
-        OSError: If copy operation fails
+        OSError: If copy operation fails (disk space, permissions, etc.)
+        PermissionError: If lacking permissions to read source or write destination
     """
-    # Create parent directory if it doesn't exist
-    destination.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        # Create parent directory if it doesn't exist
+        destination.parent.mkdir(parents=True, exist_ok=True)
+    except PermissionError as e:
+        raise PermissionError(f"Permission denied creating directory {destination.parent}: {e}")
+    except OSError as e:
+        if "No space left on device" in str(e) or e.errno == 28:
+            raise OSError(f"Insufficient disk space to create directory {destination.parent}")
+        raise OSError(f"Cannot create directory {destination.parent}: {e}")
 
-    # Copy file preserving metadata
-    shutil.copy2(source, destination)
+    try:
+        # Copy file preserving metadata
+        shutil.copy2(source, destination)
+    except PermissionError as e:
+        raise PermissionError(f"Permission denied copying {source.name} to {destination}: {e}")
+    except OSError as e:
+        # Check for disk space issues
+        if "No space left on device" in str(e) or e.errno == 28:
+            raise OSError(f"Insufficient disk space to copy {source.name}")
+        raise OSError(f"Cannot copy {source.name}: {e}")
 
 
 def organize_file(

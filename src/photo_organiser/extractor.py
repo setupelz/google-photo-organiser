@@ -22,8 +22,11 @@ def extract_zip(zip_path: Path, temp_dir: Path) -> Path:
         Path to the extracted contents (handles Takeout nested structure)
 
     Raises:
+        FileNotFoundError: If zip file doesn't exist
+        ValueError: If not a valid zip file
         zipfile.BadZipFile: If the zip file is corrupted or invalid
         OSError: If there are file system issues during extraction
+        PermissionError: If lacking permissions to read zip or write to temp_dir
     """
     if not zip_path.exists():
         raise FileNotFoundError(f"Zip file not found: {zip_path}")
@@ -31,9 +34,22 @@ def extract_zip(zip_path: Path, temp_dir: Path) -> Path:
     if not zipfile.is_zipfile(zip_path):
         raise ValueError(f"Not a valid zip file: {zip_path}")
 
-    # Extract to temp directory
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(temp_dir)
+    try:
+        # Extract to temp directory
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            # Test zip integrity before extraction
+            bad_file = zip_ref.testzip()
+            if bad_file is not None:
+                raise zipfile.BadZipFile(f"Corrupted file in zip: {bad_file}")
+
+            zip_ref.extractall(temp_dir)
+    except PermissionError as e:
+        raise PermissionError(f"Permission denied when extracting {zip_path}: {e}")
+    except OSError as e:
+        # Catch disk space issues and other OS errors
+        if "No space left on device" in str(e) or e.errno == 28:
+            raise OSError(f"Insufficient disk space to extract {zip_path}")
+        raise OSError(f"File system error during extraction: {e}")
 
     # Handle Google Takeout nested structure: Takeout/Google Photos/
     takeout_path = temp_dir / "Takeout" / "Google Photos"

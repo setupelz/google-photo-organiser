@@ -88,6 +88,13 @@ def read_exif_date(image_path: Path) -> Optional[datetime]:
     except (OSError, AttributeError, ValueError, KeyError):
         # Failed to read image or parse EXIF
         return None
+    except PermissionError:
+        # Lacking permissions to read file
+        return None
+    except Exception:
+        # Catch-all for corrupted images or unsupported formats
+        # Return None to fall back to other metadata sources
+        return None
 
 
 def get_file_modification_date(file_path: Path) -> datetime:
