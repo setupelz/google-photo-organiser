@@ -7,6 +7,7 @@ data/raw/*.pickle
 data/raw/*.h5
 data/raw/*.hdf5
 *.zip
+!tests/fixtures/*.zip
 *.gz
 *.tar
 *.bz2
