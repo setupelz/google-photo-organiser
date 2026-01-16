@@ -221,8 +221,8 @@ class TestGetBestDate:
         # Should use EXIF date
         assert result.year == 2021
 
-    def test_fallback_to_mtime_when_no_metadata(self):
-        """Test fallback to file modification time when no JSON or EXIF."""
+    def test_returns_none_when_no_metadata(self):
+        """Test that None is returned when no JSON or EXIF metadata exists."""
         image_path = FIXTURES_DIR / "photo_no_exif.jpg"
 
         # Ensure no companion JSON
@@ -231,36 +231,42 @@ class TestGetBestDate:
 
         result = get_best_date(image_path)
 
-        # Should fall back to file modification time
-        assert isinstance(result, datetime)
-        # File mtime should be recent (test fixture was created recently)
-        assert 2020 <= result.year <= 2100
+        # Should return None when no reliable date source exists
+        assert result is None
 
-    def test_video_file_uses_json_or_mtime(self):
-        """Test that video files skip EXIF and use JSON or mtime."""
+    def test_video_file_returns_none_without_json(self):
+        """Test that video files return None when no JSON exists."""
         video_path = FIXTURES_DIR / "sample_video.mp4"
 
-        # Video files don't have EXIF, so should skip EXIF check
+        # Video files don't have EXIF, and no JSON exists
         result = get_best_date(video_path)
 
-        assert isinstance(result, datetime)
-        # Should fall back to file mtime (no JSON exists)
-        assert 2020 <= result.year <= 2100
+        # Should return None (no reliable date source)
+        assert result is None
 
-    def test_handles_various_image_formats(self):
-        """Test that different image formats are handled correctly."""
-        formats_to_test = [
+    def test_handles_various_image_formats_with_exif(self):
+        """Test that images with EXIF return valid dates."""
+        # These files have EXIF data
+        formats_with_exif = [
             "photo_with_exif_2020.jpg",
             "photo_with_exif_2021.jpg",
-            "sample.png",
         ]
 
-        for filename in formats_to_test:
+        for filename in formats_with_exif:
             file_path = FIXTURES_DIR / filename
             if file_path.exists():
                 result = get_best_date(file_path)
                 assert isinstance(result, datetime)
                 assert 2000 <= result.year <= 2100
+
+    def test_returns_none_for_image_without_exif(self):
+        """Test that images without EXIF return None."""
+        # PNG typically doesn't have EXIF
+        file_path = FIXTURES_DIR / "sample.png"
+        if file_path.exists():
+            result = get_best_date(file_path)
+            # Should return None (no EXIF, no JSON)
+            assert result is None
 
 
 class TestExtractYear:
