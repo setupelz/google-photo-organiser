@@ -51,7 +51,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Function to handle filename conflicts (append counter `_001`, `_002`, etc.)
   - Function to copy files to organized structure
   - Skip JSON metadata files in output
-- [ ] Create `src/photo_organiser/config.py`:
+- [x] Create `src/photo_organiser/config.py`:
   - Define photo extensions: `.jpg`, `.jpeg`, `.png`, `.heic`, `.webp`, `.gif`
   - Define video extensions: `.mp4`, `.mov`, `.avi`, `.mkv`, `.webm`
   - Define default output directory path
