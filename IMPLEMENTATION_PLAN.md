@@ -73,7 +73,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Add `--output` flag for custom output directory (default: `./output/`)
   - Add `--verbose` flag for detailed logging
   - Validate input files exist and are valid zip files
-- [ ] Add progress reporting:
+- [x] Add progress reporting:
   - Use `tqdm` library for progress bar
   - Track files processed vs total files
   - Display current file being processed in verbose mode

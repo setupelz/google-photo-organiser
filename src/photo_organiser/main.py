@@ -10,6 +10,8 @@ import zipfile
 from pathlib import Path
 from typing import List
 
+from tqdm import tqdm
+
 from .extractor import process_zip_file, cleanup_temp_dir
 from .metadata import get_best_date, extract_year
 from .organizer import organize_file
@@ -68,8 +70,16 @@ def process_single_zip(
         if verbose:
             print(f"Found {len(media_files)} files to process")
 
+        # Create progress bar
+        progress_bar = tqdm(
+            media_files,
+            desc=f"Processing {zip_path.name}",
+            unit="file",
+            disable=verbose  # Disable if verbose mode (to avoid conflicts with detailed output)
+        )
+
         # Process each file
-        for media_file in media_files:
+        for media_file in progress_bar:
             files_processed += 1
 
             try:
@@ -79,6 +89,9 @@ def process_single_zip(
 
                 if verbose:
                     print(f"Processing: {media_file.name} (year: {year})")
+                else:
+                    # Update progress bar description with current file
+                    progress_bar.set_postfix_str(f"{media_file.name[:30]}...")
 
                 # Organize the file
                 result = organize_file(media_file, year, output_dir)
@@ -94,6 +107,9 @@ def process_single_zip(
                 errors.append(error_msg)
                 if verbose:
                     print(f"  ! {error_msg}", file=sys.stderr)
+
+        # Close progress bar
+        progress_bar.close()
 
         # Cleanup temporary directory
         cleanup_temp_dir(temp_dir)
