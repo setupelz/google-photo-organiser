@@ -68,7 +68,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
 
 ### Tasks
 
-- [ ] Implement CLI in `main.py`:
+- [x] Implement CLI in `main.py`:
   - Use `argparse` to accept multiple zip file paths
   - Add `--output` flag for custom output directory (default: `./output/`)
   - Add `--verbose` flag for detailed logging

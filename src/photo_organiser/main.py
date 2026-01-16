@@ -6,7 +6,104 @@ and organizing media files by year and type.
 
 import argparse
 import sys
+import zipfile
 from pathlib import Path
+from typing import List
+
+from .extractor import process_zip_file, cleanup_temp_dir
+from .metadata import get_best_date, extract_year
+from .organizer import organize_file
+
+
+def validate_zip_file(zip_path: Path) -> bool:
+    """Validate that a file is a valid zip file.
+
+    Args:
+        zip_path: Path to check
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not zip_path.exists():
+        print(f"Error: File not found: {zip_path}", file=sys.stderr)
+        return False
+
+    if not zip_path.is_file():
+        print(f"Error: Not a file: {zip_path}", file=sys.stderr)
+        return False
+
+    if not zipfile.is_zipfile(zip_path):
+        print(f"Error: Not a valid zip file: {zip_path}", file=sys.stderr)
+        return False
+
+    return True
+
+
+def process_single_zip(
+    zip_path: Path,
+    output_dir: Path,
+    verbose: bool
+) -> tuple[int, int, List[str]]:
+    """Process a single zip file.
+
+    Args:
+        zip_path: Path to zip file
+        output_dir: Output directory for organized files
+        verbose: Enable verbose logging
+
+    Returns:
+        Tuple of (files_processed, files_organized, errors)
+    """
+    if verbose:
+        print(f"\nExtracting {zip_path.name}...")
+
+    errors = []
+    files_processed = 0
+    files_organized = 0
+
+    try:
+        # Extract zip and get media files
+        media_files, temp_dir = process_zip_file(zip_path)
+
+        if verbose:
+            print(f"Found {len(media_files)} files to process")
+
+        # Process each file
+        for media_file in media_files:
+            files_processed += 1
+
+            try:
+                # Get date and year
+                date = get_best_date(media_file)
+                year = extract_year(date)
+
+                if verbose:
+                    print(f"Processing: {media_file.name} (year: {year})")
+
+                # Organize the file
+                result = organize_file(media_file, year, output_dir)
+
+                if result is not None:
+                    files_organized += 1
+                    if verbose:
+                        file_type, dest_path = result
+                        print(f"  → {file_type}: {dest_path.relative_to(output_dir)}")
+
+            except Exception as e:
+                error_msg = f"Error processing {media_file.name}: {str(e)}"
+                errors.append(error_msg)
+                if verbose:
+                    print(f"  ! {error_msg}", file=sys.stderr)
+
+        # Cleanup temporary directory
+        cleanup_temp_dir(temp_dir)
+
+    except Exception as e:
+        error_msg = f"Error processing zip {zip_path.name}: {str(e)}"
+        errors.append(error_msg)
+        print(error_msg, file=sys.stderr)
+
+    return files_processed, files_organized, errors
 
 
 def main() -> int:
@@ -55,31 +152,61 @@ Examples:
     args = parser.parse_args()
 
     # Validate input files
+    valid_zips = []
     for zip_file in args.zip_files:
-        if not zip_file.exists():
-            print(f"Error: File not found: {zip_file}", file=sys.stderr)
-            return 1
-        if not zip_file.is_file():
-            print(f"Error: Not a file: {zip_file}", file=sys.stderr)
-            return 1
+        if validate_zip_file(zip_file):
+            valid_zips.append(zip_file)
+
+    if not valid_zips:
+        print("Error: No valid zip files to process", file=sys.stderr)
+        return 1
 
     # Create output directory if it doesn't exist
     args.output.mkdir(parents=True, exist_ok=True)
 
     print(f"Photo Organiser v0.1.0")
-    print(f"Processing {len(args.zip_files)} zip file(s)...")
+    print(f"Processing {len(valid_zips)} zip file(s)...")
     print(f"Output directory: {args.output.absolute()}")
 
     if args.verbose:
         print("\nVerbose mode enabled")
         print(f"Input files:")
-        for zip_file in args.zip_files:
+        for zip_file in valid_zips:
             print(f"  - {zip_file.absolute()}")
 
-    # TODO: Implement processing logic in Phase 2
-    print("\n[Processing not yet implemented - Phase 2 pending]")
+    # Process all zip files
+    total_processed = 0
+    total_organized = 0
+    all_errors = []
 
-    return 0
+    for zip_file in valid_zips:
+        processed, organized, errors = process_single_zip(
+            zip_file,
+            args.output,
+            args.verbose
+        )
+        total_processed += processed
+        total_organized += organized
+        all_errors.extend(errors)
+
+    # Print summary
+    print(f"\n{'='*60}")
+    print("Processing Complete")
+    print(f"{'='*60}")
+    print(f"Total files processed: {total_processed}")
+    print(f"Files organized: {total_organized}")
+    print(f"Files skipped: {total_processed - total_organized}")
+
+    if all_errors:
+        print(f"\nErrors encountered: {len(all_errors)}")
+        if not args.verbose:
+            print("Run with --verbose to see error details")
+        else:
+            print("\nError details:")
+            for error in all_errors:
+                print(f"  - {error}")
+
+    return 0 if not all_errors else 1
 
 
 if __name__ == '__main__':
