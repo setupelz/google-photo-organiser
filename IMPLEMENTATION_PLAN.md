@@ -182,7 +182,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
 
 ### Tasks
 
-- [ ] Update `README.md`:
+- [x] Update `README.md`:
   - Replace research template content
   - Add project description and purpose
   - Add usage instructions for end users (Windows executable)
