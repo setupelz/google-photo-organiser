@@ -6,6 +6,7 @@ and organizing media files by year and type.
 
 import argparse
 import logging
+import os
 import sys
 import zipfile
 from pathlib import Path
@@ -14,6 +15,24 @@ from collections import defaultdict
 from datetime import datetime
 
 from tqdm import tqdm
+
+
+def get_executable_dir() -> Path:
+    """Get the directory containing the executable or script.
+
+    When running as a PyInstaller executable, returns the directory
+    containing the .exe file. When running as a script, returns the
+    directory containing the script.
+
+    Returns:
+        Path to the executable/script directory
+    """
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller executable
+        return Path(sys.executable).parent
+    else:
+        # Running as script
+        return Path(__file__).parent
 
 from photo_organiser.extractor import process_zip_file, cleanup_temp_dir
 from photo_organiser.metadata import get_best_date, extract_year
@@ -331,8 +350,8 @@ Examples:
     parser.add_argument(
         '-o', '--output',
         type=Path,
-        default=Path('./output'),
-        help='Output directory for organized photos (default: ./output)'
+        default=get_executable_dir() / 'output',
+        help='Output directory for organized photos (default: ./output next to executable)'
     )
 
     parser.add_argument(
