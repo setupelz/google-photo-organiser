@@ -161,7 +161,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Bundle all dependencies (Pillow, etc.)
   - Set console mode (not windowed)
   - Optional: Add icon file
-- [ ] Create `build.py` or Makefile target:
+- [x] Create `build.py` or Makefile target:
   - Automate PyInstaller build process
   - Clean previous builds before building
   - Copy executable to `dist/photo-organiser.exe`
