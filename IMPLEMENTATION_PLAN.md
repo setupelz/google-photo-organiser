@@ -16,23 +16,23 @@ Implement GitHub Actions workflow to build Windows executable automatically on W
 ### Phase 1: Create GitHub Actions Workflow
 
 - [x] Create `.github/workflows/` directory structure
-- [ ] Create `build-windows.yml` workflow file
-- [ ] Configure workflow triggers (push, PR, tags, manual dispatch)
-- [ ] Set up Windows runner with Python 3.11
-- [ ] Add dependency installation step using pip and uv
-- [ ] Add test execution step
-- [ ] Add PyInstaller build step using `build.spec`
-- [ ] Add executable verification step (smoke test with `--help`)
-- [ ] Configure artifact upload for built executable
+- [x] Create `build-windows.yml` workflow file
+- [x] Configure workflow triggers (push, PR, tags, manual dispatch)
+- [x] Set up Windows runner with Python 3.11
+- [x] Add dependency installation step using pip and uv
+- [x] Add test execution step
+- [x] Add PyInstaller build step using `build.spec`
+- [x] Add executable verification step (smoke test with `--help`)
+- [x] Configure artifact upload for built executable
 
 ### Phase 2: Release Automation
 
-- [ ] Add release job that depends on successful build
-- [ ] Configure release job to trigger only on version tags
-- [ ] Add artifact download step in release job
-- [ ] Add GitHub Release creation step
-- [ ] Configure release to attach the `.exe` file
-- [ ] Enable auto-generated release notes
+- [x] Add release job that depends on successful build
+- [x] Configure release job to trigger only on version tags
+- [x] Add artifact download step in release job
+- [x] Add GitHub Release creation step
+- [x] Configure release to attach the `.exe` file
+- [x] Enable auto-generated release notes
 
 ### Phase 3: Documentation
 
