@@ -1,5 +1,7 @@
 # Google Photo Organiser
 
+[![Build Windows Executable](https://github.com/setupelz/google-photo-organiser/actions/workflows/build-windows.yml/badge.svg)](https://github.com/setupelz/google-photo-organiser/actions/workflows/build-windows.yml)
+
 A standalone Windows executable that organizes Google Takeout photo exports into a clean, browsable directory structure sorted by year and media type.
 
 ## What It Does
