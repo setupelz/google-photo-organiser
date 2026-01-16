@@ -157,6 +157,57 @@ google-photo-organiser/
 └── pyproject.toml          # Dependencies
 ```
 
+## CI/CD & Releases
+
+### Automated Builds
+
+Every push to `main`, pull request, and tag triggers an automated build workflow that:
+
+1. Runs the test suite on Windows
+2. Builds the Windows executable using PyInstaller
+3. Verifies the executable with a smoke test (`--help`)
+4. Uploads the build artifact (available for 30 days)
+
+### Creating a Release
+
+To create a new release with an attached executable:
+
+```bash
+# Create and push a version tag
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This triggers the release workflow, which automatically:
+- Builds the Windows executable
+- Creates a GitHub Release
+- Attaches the `.exe` file to the release
+- Generates release notes from recent commits
+
+**Tag format:** `v*` (e.g., `v1.0.0`, `v0.2.1`, `v1.0.0-beta`)
+
+### Downloading Build Artifacts
+
+To test a build before creating a release:
+
+1. Navigate to the **Actions** tab in GitHub
+2. Select the **Build Windows Executable** workflow
+3. Click on a completed workflow run
+4. Scroll to **Artifacts** section at the bottom
+5. Download `photo-organiser-windows.zip`
+6. Extract and test the executable
+
+**Note:** Artifacts expire after 30 days. For permanent builds, create a release tag.
+
+### Manual Workflow Trigger
+
+You can trigger a build manually without pushing code:
+
+1. Navigate to **Actions** tab in GitHub
+2. Select **Build Windows Executable** workflow
+3. Click **Run workflow** button
+4. Select branch and click **Run workflow**
+
 ## Technical Details
 
 - Built with Python using PyInstaller for Windows distribution

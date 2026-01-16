@@ -37,8 +37,8 @@ Implement GitHub Actions workflow to build Windows executable automatically on W
 ### Phase 3: Documentation
 
 - [x] Update README with CI/CD badge
-- [ ] Document release process (tagging workflow)
-- [ ] Document artifact download process for testing
+- [x] Document release process (tagging workflow)
+- [x] Document artifact download process for testing
 
 ---
 
