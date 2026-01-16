@@ -193,7 +193,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Detailed build instructions
   - PyInstaller configuration explanation
   - Development setup (uv, Python version)
-- [ ] Add inline documentation:
+- [x] Add inline documentation:
   - Docstrings for all functions (Google style)
   - Type hints throughout
   - Comments for complex logic (metadata parsing, conflict resolution)
