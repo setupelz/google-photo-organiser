@@ -18,6 +18,7 @@ from tqdm import tqdm
 from .extractor import process_zip_file, cleanup_temp_dir
 from .metadata import get_best_date, extract_year
 from .organizer import organize_file
+from .config import LARGE_FILE_WARNING_BYTES
 
 
 def setup_logging(output_dir: Path, verbose: bool) -> logging.Logger:
@@ -134,6 +135,15 @@ def process_single_zip(
             files_processed += 1
 
             try:
+                # Check file size and warn for very large files
+                file_size = media_file.stat().st_size
+                if file_size > LARGE_FILE_WARNING_BYTES:
+                    size_gb = file_size / (1024 * 1024 * 1024)
+                    logger.warning(
+                        f"Large file detected: {media_file.name} ({size_gb:.2f} GB) - "
+                        f"copying may take significant time"
+                    )
+
                 # Get date and year
                 date = get_best_date(media_file)
                 year = extract_year(date)

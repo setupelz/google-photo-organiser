@@ -56,7 +56,13 @@ def extract_zip(zip_path: Path, temp_dir: Path) -> Path:
     if takeout_path.exists():
         return takeout_path
 
+    # Fallback: Check for just "Google Photos" directory (some exports skip "Takeout")
+    google_photos_path = temp_dir / "Google Photos"
+    if google_photos_path.exists():
+        return google_photos_path
+
     # Fallback: return root if Takeout structure not found
+    # This handles edge case of non-standard zip structures
     return temp_dir
 
 
@@ -68,11 +74,19 @@ def find_media_files(root_dir: Path) -> List[Path]:
 
     Returns:
         List of Path objects for all files found
+
+    Note:
+        Returns empty list if directory is empty or contains no files.
+        This handles the edge case of empty zip archives gracefully.
     """
     media_files = []
-    for item in root_dir.rglob("*"):
-        if item.is_file():
-            media_files.append(item)
+    try:
+        for item in root_dir.rglob("*"):
+            if item.is_file():
+                media_files.append(item)
+    except PermissionError:
+        # Skip directories we don't have permission to read
+        pass
     return media_files
 
 

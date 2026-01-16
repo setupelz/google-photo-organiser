@@ -138,7 +138,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Log to file: `output/photo_organiser.log`
   - Log level controlled by `--verbose` flag
   - Log all errors, warnings, and processing steps
-- [ ] Handle edge cases:
+- [x] Handle edge cases:
   - Empty zip files
   - Zip files without media files
   - Files with same name but different dates

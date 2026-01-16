@@ -7,6 +7,7 @@ resolving filename conflicts, and copying files to the organized structure.
 from pathlib import Path
 from typing import Tuple, Optional
 import shutil
+import logging
 
 from .config import (
     PHOTO_EXTENSIONS,
@@ -16,6 +17,8 @@ from .config import (
     DUPLICATE_COUNTER_FORMAT,
     METADATA_EXTENSION,
 )
+
+logger = logging.getLogger('photo_organiser')
 
 
 def classify_file(file_path: Path) -> Optional[str]:
@@ -75,6 +78,10 @@ def resolve_filename_conflict(target_path: Path) -> Path:
     If target_path exists, append _001, _002, etc. before the extension
     until a non-existent path is found.
 
+    This handles the edge case where files have the same name but different dates
+    (e.g., multiple photos named IMG_1234.jpg from different years). Both files
+    are preserved by appending a counter.
+
     Args:
         target_path: Desired output path
 
@@ -84,6 +91,10 @@ def resolve_filename_conflict(target_path: Path) -> Path:
     Examples:
         photo.jpg -> photo_001.jpg -> photo_002.jpg
         video.mp4 -> video_001.mp4
+
+    Note:
+        Files with identical names from different dates are treated as separate
+        entities and both are preserved. This is intentional to avoid data loss.
     """
     if not target_path.exists():
         return target_path
@@ -182,8 +193,14 @@ def organize_file(
     # Generate output path
     target_path = generate_output_path(file_path, year, output_dir, file_type)
 
-    # Resolve conflicts
+    # Resolve conflicts (handles edge case of same filename with different dates)
     final_path = resolve_filename_conflict(target_path)
+
+    # Log if filename was modified to resolve conflict
+    if final_path != target_path:
+        logger.info(
+            f"Filename conflict resolved: {file_path.name} -> {final_path.name}"
+        )
 
     # Copy file
     copy_file(file_path, final_path)

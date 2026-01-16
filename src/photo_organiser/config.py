@@ -48,3 +48,5 @@ TEMP_DIR_PREFIX: str = 'photo_organiser_temp_'
 
 # File size limits (for validation)
 MAX_FILENAME_LENGTH: int = 255  # Common filesystem limit
+LARGE_FILE_WARNING_GB: float = 5.0  # Warn for files larger than this (in GB)
+LARGE_FILE_WARNING_BYTES: int = int(LARGE_FILE_WARNING_GB * 1024 * 1024 * 1024)
