@@ -23,7 +23,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
 - [x] Create `src/photo_organiser/` package structure
 - [x] Create `src/photo_organiser/__init__.py`
 - [x] Create `src/photo_organiser/main.py` entry point
-- [ ] Remove placeholder research scripts (`scripts/01-acquire.py`, `02-clean.py`, `03-analyze.py`, `04-visualize.py`)
+- [x] Remove placeholder research scripts (`scripts/01-acquire.py`, `02-clean.py`, `03-analyze.py`, `04-visualize.py`)
 
 ### Verification
 - `uv sync` completes successfully
