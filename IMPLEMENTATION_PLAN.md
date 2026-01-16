@@ -45,7 +45,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Function to extract file modification date (fallback)
   - Function to determine best date source (priority: JSON > EXIF > file mtime)
   - Return year from extracted date
-- [ ] Create `src/photo_organiser/organizer.py`:
+- [x] Create `src/photo_organiser/organizer.py`:
   - Function to classify files into photos vs videos (by extension)
   - Function to generate output path: `photos/YYYY/` or `videos/YYYY/`
   - Function to handle filename conflicts (append counter `_001`, `_002`, etc.)
