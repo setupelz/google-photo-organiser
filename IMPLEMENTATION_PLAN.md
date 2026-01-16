@@ -22,7 +22,7 @@ Build a standalone Windows executable that processes Google Takeout zip files an
   - Remove unused research dependencies (pandas, numpy, matplotlib, seaborn, scipy, jupyter)
 - [x] Create `src/photo_organiser/` package structure
 - [x] Create `src/photo_organiser/__init__.py`
-- [ ] Create `src/photo_organiser/main.py` entry point
+- [x] Create `src/photo_organiser/main.py` entry point
 - [ ] Remove placeholder research scripts (`scripts/01-acquire.py`, `02-clean.py`, `03-analyze.py`, `04-visualize.py`)
 
 ### Verification
